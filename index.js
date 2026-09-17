@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 const { init: initDB, Counter } = require("./db");
+const { runDifyWorkflow } = require("./dify");
 
 const logger = morgan("tiny");
 
@@ -46,6 +47,35 @@ app.get("/api/count", async (req, res) => {
 app.get("/api/wx_openid", async (req, res) => {
   if (req.headers["x-wx-source"]) {
     res.send(req.headers["x-wx-openid"]);
+  }
+});
+
+
+// Text to Excel - call Dify workflow
+app.post("/api/convert", async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).send({
+        success: false,
+        error: "text is required"
+      });
+    }
+
+    const result = await runDifyWorkflow(text);
+
+    res.send({
+      success: true,
+      result: result
+    });
+  } catch (error) {
+    console.error("Dify workflow error:", error);
+
+    res.status(500).send({
+      success: false,
+      error: error.message || "Dify workflow failed"
+    });
   }
 });
 
